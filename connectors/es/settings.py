@@ -7,6 +7,7 @@ import copy
 from os import path
 
 import yaml
+from connectors.logger import logger
 
 ENUM_IGNORE_ABOVE = 2048
 
@@ -69,6 +70,8 @@ CRAWLER_FIELD_MAPPINGS = {
 DEFAULT_LANGUAGE = "en"
 FRONT_NGRAM_MAX_GRAM = 12
 LANGUAGE_DATA_FILE_PATH = path.join(path.dirname(__file__), "language_data.yml")
+CUSTOMIZED_DYNAMIC_TEMPLATES_PATH = "/settings/dynamic_templates.yml"
+CUSTOMIZED_ANALYZER_FILE_PATH = "/settings/analyzer.yml"
 
 GENERIC_FILTERS = {
     "front_ngram": {
@@ -135,6 +138,15 @@ class Mappings:
             ],
             "properties": {},
         }
+
+        if path.isfile(CUSTOMIZED_DYNAMIC_TEMPLATES_PATH):
+            with open(CUSTOMIZED_DYNAMIC_TEMPLATES_PATH, "r", encoding="utf-8") as f:
+                if dynamic_templates := yaml.safe_load(f):
+                    logger.info(
+                        f"Loading customized dynamic templates from {CUSTOMIZED_DYNAMIC_TEMPLATES_PATH}"
+                    )
+                    result["dynamic_templates"] = dynamic_templates
+
         id_prop = {"id": KEYWORD_FIELD_MAPPING}
         if is_crawler_index:
             result["properties"].update(id_prop)
@@ -214,6 +226,14 @@ class Settings:
     @property
     def analyzer_definitions(self):
         definitions = {}
+
+        if path.isfile(CUSTOMIZED_ANALYZER_FILE_PATH):
+            with open(CUSTOMIZED_ANALYZER_FILE_PATH, "r", encoding="utf-8") as f:
+                if customized_analyzers := yaml.safe_load(f):
+                    logger.info(
+                        f"Loading customized analyzer from {CUSTOMIZED_ANALYZER_FILE_PATH}"
+                    )
+                    definitions.update(customized_analyzers)
 
         definitions["i_prefix"] = {
             "tokenizer": self.analysis_settings["tokenizer_name"],
